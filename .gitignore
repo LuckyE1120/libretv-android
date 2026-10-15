@@ -1,0 +1,10 @@
+node_modules/
+src-tauri/target/
+src-tauri/gen/
+.DS_Store
+.env
+.env.*
+*.log
+*.jks
+*.keystore
+local.properties
