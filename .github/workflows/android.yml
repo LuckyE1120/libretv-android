@@ -42,6 +42,7 @@ jobs:
         run: echo "NDK_HOME=$ANDROID_HOME/ndk/27.2.12479018" >> "$GITHUB_ENV"
       - run: npm ci
       - run: npm run check
+      - run: npm test
       - run: npm run android:init -- --ci
       - run: npm run android:build -- --ci
       - name: Upload installable debug APK

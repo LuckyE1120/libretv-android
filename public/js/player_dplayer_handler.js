@@ -125,8 +125,7 @@ function initPlayer(videoUrl, sourceCode) {
         } // Explicitly no comma after video if it's the last property of DPlayer options
     });
 
-    dp.on('fullscreen', async () => { /* ... Tauri fullscreen logic ... */ });
-    dp.on('fullscreen_cancel', async () => { /* ... Tauri fullscreen_cancel logic ... */ });
+    window.bindPlayerFullscreen(dp);
     
     dp.on('loadedmetadata', function() {
         hlsPlaybackStarted = true; errorDisplayedGlobal = false;
@@ -393,93 +392,7 @@ function initPlayer(videoUrl, sourceCode) {
             `; // Ensured "视频加载时间较长..." is removed
         }
     }, 10000);
-    // Tauri fullscreen binding - this was a self-invoking function, ensure it's correctly placed or called if needed.
-    // For now, assuming its internal logic is self-contained and correct as per original file.
-    // If it was (function(){ ... })(); then it's fine.
-    // If it was just a function definition, it needs to be called: initTauriFullscreen();
-    // Based on previous full file, it was a self-invoking function.
-    (function(){ 
-        const fsContainer = document.getElementById('playerContainer');
-        if (!dp || !fsContainer) return; // Guard against dp or container not being ready
-        dp.on('fullscreen', async () => { 
-            try {
-                let success = false;
-                if (window.__TAURI__ && window.__TAURI__.window) {
-                    if (window.__TAURI__.window.appWindow) { 
-                        await window.__TAURI__.window.appWindow.setFullscreen(true);
-                        success = true;
-                    } else if (window.__TAURI__.window.getCurrent) { 
-                        const { getCurrent } = window.__TAURI__.window;
-                        await getCurrent().setFullscreen(true);
-                        success = true;
-                    }
-                }
-                // For web/PWA, try to fullscreen the entire document element for better immersive experience
-                const elementToFullscreen = document.documentElement;
-                if (!success && elementToFullscreen && typeof elementToFullscreen.requestFullscreen === 'function') {
-                    // 尝试请求带有隐藏导航栏选项的全屏
-                    elementToFullscreen.requestFullscreen({ navigationUI: "hide" }).catch(err => {
-                        console.warn('Document fullscreen with navigationUI: "hide" failed, trying without:', err);
-                        // 如果带选项的请求失败 (例如浏览器不支持此选项)，则回退到不带选项的请求
-                        elementToFullscreen.requestFullscreen().catch(e => console.warn('Fallback document fullscreen failed:', e));
-                    });
-                } else if (!success && fsContainer.requestFullscreen) { // Fallback to fsContainer if documentElement somehow fails
-                    fsContainer.requestFullscreen({ navigationUI: "hide" }).catch(err => {
-                        console.warn('Element fullscreen with navigationUI: "hide" failed, trying without:', err);
-                        fsContainer.requestFullscreen().catch(e => console.warn('Fallback element fullscreen failed:', e));
-                    });
-                }
-                document.body.classList.add('dplayer-custom-fullscreen-mode');
-                const playerHeaderOnEnter = document.querySelector('.player-header');
-                if (playerHeaderOnEnter) {
-                    playerHeaderOnEnter.style.display = 'none';
-                }
-            } catch (err) {
-                console.error('Error setting Tauri window to fullscreen or web fullscreen:', err);
-                const elementToFullscreenCatch = document.documentElement;
-                // 确保在顶层 catch 中也有回退
-                if (elementToFullscreenCatch && typeof elementToFullscreenCatch.requestFullscreen === 'function') {
-                     elementToFullscreenCatch.requestFullscreen({ navigationUI: "hide" }).catch(err_fallback => {
-                        console.warn('Fallback document fullscreen with navigationUI: "hide" in catch failed, trying without:', err_fallback);
-                        elementToFullscreenCatch.requestFullscreen().catch(e => console.warn('Fallback document fullscreen in catch failed:', e));
-                    });
-                } else if (fsContainer.requestFullscreen) { // Fallback to fsContainer if documentElement somehow fails in catch
-                    fsContainer.requestFullscreen({ navigationUI: "hide" }).catch(err_fallback => {
-                        console.warn('Fallback element fullscreen with navigationUI: "hide" in catch failed, trying without:', err_fallback);
-                        fsContainer.requestFullscreen().catch(e => console.warn('Fallback element fullscreen in catch failed:', e));
-                    });
-                }
-            }
-        });
-        dp.on('fullscreen_cancel', async () => { 
-            try {
-                let success = false;
-                if (window.__TAURI__ && window.__TAURI__.window) {
-                    if (window.__TAURI__.window.appWindow) {
-                        await window.__TAURI__.window.appWindow.setFullscreen(false);
-                        success = true;
-                    } else if (window.__TAURI__.window.getCurrent) {
-                        const { getCurrent } = window.__TAURI__.window;
-                        await getCurrent().setFullscreen(false);
-                        success = true;
-                    }
-                }
-                if (!success && document.exitFullscreen) {
-                   document.exitFullscreen().catch(err => console.warn('Document exit fullscreen failed:', err));
-                }
-                document.body.classList.remove('dplayer-custom-fullscreen-mode');
-                const playerHeaderOnExit = document.querySelector('.player-header');
-                if (playerHeaderOnExit) {
-                    playerHeaderOnExit.style.display = ''; // 恢复默认或CSS类控制的显示
-                }
-            } catch (err) {
-                console.error('Error exiting Tauri window fullscreen:', err);
-                if (document.exitFullscreen) {
-                    document.exitFullscreen().catch(e => console.warn('Fallback document exit fullscreen failed:', e));
-                }
-            }
-        });
-    })();
+
 }
 
 class CustomHlsJsLoader extends Hls.DefaultConfig.loader {

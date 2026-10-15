@@ -455,6 +455,7 @@ pub fn run() {
   // }
   
   tauri::Builder::default()
+    .plugin(tauri_plugin_player_fullscreen::init())
     // .plugin( // Temporarily commented out
         // log_builder
             // .level(log::LevelFilter::Debug) 
